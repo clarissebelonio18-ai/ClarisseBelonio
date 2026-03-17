@@ -17,7 +17,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            grade INTEGER NOT NULL,
+            course TEXT NOT NULL,
             section TEXT NOT NULL
         )
     ''')
@@ -27,7 +27,7 @@ def init_db():
 init_db()
 
 # -----------------------------
-# UI Page (HTML + JS + Peach Theme)
+# UI Page (HTML + JS + Peach + White Theme)
 # -----------------------------
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -38,12 +38,16 @@ HTML_PAGE = """
         body {
             font-family: 'Arial', sans-serif;
             background-color: #FFE5B4; /* light peach */
-            color: #4B2E2E; /* dark brown text */
+            color: #4B2E2E; /* dark brown */
             padding: 40px;
         }
         h2 {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+        .input-container {
+            text-align: center;
+            margin-bottom: 20px;
         }
         input {
             margin: 5px;
@@ -56,7 +60,7 @@ HTML_PAGE = """
             margin: 5px;
             border: none;
             border-radius: 5px;
-            background-color: #FFB07C; /* peach buttons */
+            background-color: #FFB07C; /* peach */
             color: white;
             cursor: pointer;
             font-weight: bold;
@@ -68,23 +72,27 @@ HTML_PAGE = """
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
-            background-color: #FFF1E0; /* light peach table */
+            background-color: #FFFFFF; /* white table */
             border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         th, td {
             padding: 12px;
             text-align: center;
         }
         th {
-            background-color: #FFAD81; /* darker peach for header */
+            background-color: #FFAD81; /* peach header */
             color: white;
         }
         tr:nth-child(even) {
-            background-color: #FFD8B0; /* alternating row peach */
+            background-color: #FFF1E0; /* light peach row */
         }
         tr:hover {
-            background-color: #FFBF80;
+            background-color: #FFD8B0;
+        }
+        #searchBar {
+            width: 300px;
         }
     </style>
 </head>
@@ -92,11 +100,14 @@ HTML_PAGE = """
 
 <h2>🎓 Student Manager</h2>
 
-<div style="text-align:center;">
+<div class="input-container">
     <input id="name" placeholder="Name">
-    <input id="grade" placeholder="Grade" type="number">
+    <input id="course" placeholder="Course">
     <input id="section" placeholder="Section">
     <button onclick="addStudent()">Add Student</button>
+    <br>
+    <input id="searchBar" placeholder="Search by name, course or section" oninput="filterStudents()">
+    <button onclick="resetSearch()">Reset</button>
 </div>
 
 <table>
@@ -104,7 +115,7 @@ HTML_PAGE = """
         <tr>
             <th>ID</th>
             <th>Name</th>
-            <th>Grade</th>
+            <th>Course</th>
             <th>Section</th>
             <th>Actions</th>
         </tr>
@@ -113,43 +124,50 @@ HTML_PAGE = """
 </table>
 
 <script>
+let allStudents = [];
+
 const API = "/student";
 
 function fetchStudents() {
     fetch(API)
     .then(res => res.json())
     .then(data => {
-        let table = document.getElementById("studentTable");
-        table.innerHTML = "";
-        data.forEach(s => {
-            table.innerHTML += `
-                <tr>
-                    <td>${s.id}</td>
-                    <td>${s.name}</td>
-                    <td>${s.grade}</td>
-                    <td>${s.section}</td>
-                    <td>
-                        <button onclick="editStudent(${s.id})">Edit</button>
-                        <button onclick="deleteStudent(${s.id})">Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
+        allStudents = data;
+        displayStudents(allStudents);
+    });
+}
+
+function displayStudents(students) {
+    let table = document.getElementById("studentTable");
+    table.innerHTML = "";
+    students.forEach(s => {
+        table.innerHTML += `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.course}</td>
+                <td>${s.section}</td>
+                <td>
+                    <button onclick="editStudent(${s.id})">Edit</button>
+                    <button onclick="deleteStudent(${s.id})">Delete</button>
+                </td>
+            </tr>
+        `;
     });
 }
 
 function addStudent() {
     let name = document.getElementById("name").value;
-    let grade = document.getElementById("grade").value;
+    let course = document.getElementById("course").value;
     let section = document.getElementById("section").value;
 
     fetch(API, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({name, grade, section})
+        body: JSON.stringify({name, course, section})
     }).then(() => {
         document.getElementById("name").value = "";
-        document.getElementById("grade").value = "";
+        document.getElementById("course").value = "";
         document.getElementById("section").value = "";
         fetchStudents();
     });
@@ -162,14 +180,29 @@ function deleteStudent(id) {
 
 function editStudent(id) {
     let name = prompt("Enter new name:");
-    let grade = prompt("Enter new grade:");
+    let course = prompt("Enter new course:");
     let section = prompt("Enter new section:");
 
     fetch(API + "/" + id, {
         method: "PUT",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({name, grade, section})
+        body: JSON.stringify({name, course, section})
     }).then(() => fetchStudents());
+}
+
+function filterStudents() {
+    const term = document.getElementById("searchBar").value.toLowerCase();
+    const filtered = allStudents.filter(s =>
+        s.name.toLowerCase().includes(term) ||
+        s.course.toLowerCase().includes(term) ||
+        s.section.toLowerCase().includes(term)
+    );
+    displayStudents(filtered);
+}
+
+function resetSearch() {
+    document.getElementById("searchBar").value = "";
+    displayStudents(allStudents);
 }
 
 fetchStudents();
@@ -191,8 +224,8 @@ def add_student():
     data = request.get_json()
     conn = get_db_connection()
     conn.execute(
-        'INSERT INTO students (name, grade, section) VALUES (?, ?, ?)',
-        (data['name'], data['grade'], data['section'])
+        'INSERT INTO students (name, course, section) VALUES (?, ?, ?)',
+        (data['name'], data['course'], data['section'])
     )
     conn.commit()
     conn.close()
@@ -210,8 +243,8 @@ def update_student(id):
     data = request.get_json()
     conn = get_db_connection()
     conn.execute(
-        'UPDATE students SET name=?, grade=?, section=? WHERE id=?',
-        (data['name'], data['grade'], data['section'], id)
+        'UPDATE students SET name=?, course=?, section=? WHERE id=?',
+        (data['name'], data['course'], data['section'], id)
     )
     conn.commit()
     conn.close()

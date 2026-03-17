@@ -27,7 +27,7 @@ def init_db():
 init_db()
 
 # -----------------------------
-# UI Page (HTML + JS)
+# UI Page (HTML + JS + Peach Theme)
 # -----------------------------
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -35,22 +35,69 @@ HTML_PAGE = """
 <head>
     <title>Student Manager</title>
     <style>
-        body { font-family: Arial; margin: 40px; }
-        input { margin: 5px; padding: 8px; }
-        button { padding: 8px; margin: 5px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px;}
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center;}
-        th { background-color: #f4f4f4; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #FFE5B4; /* light peach */
+            color: #4B2E2E; /* dark brown text */
+            padding: 40px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        input {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #D9A066;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #FFB07C; /* peach buttons */
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #FFA15C;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            background-color: #FFF1E0; /* light peach table */
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #FFAD81; /* darker peach for header */
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #FFD8B0; /* alternating row peach */
+        }
+        tr:hover {
+            background-color: #FFBF80;
+        }
     </style>
 </head>
 <body>
 
-<h2>🎓 Student Manager (CRUD)</h2>
+<h2>🎓 Student Manager</h2>
 
-<input id="name" placeholder="Name">
-<input id="grade" placeholder="Grade" type="number">
-<input id="section" placeholder="Section">
-<button onclick="addStudent()">Add Student</button>
+<div style="text-align:center;">
+    <input id="name" placeholder="Name">
+    <input id="grade" placeholder="Grade" type="number">
+    <input id="section" placeholder="Section">
+    <button onclick="addStudent()">Add Student</button>
+</div>
 
 <table>
     <thead>
@@ -135,13 +182,10 @@ fetchStudents();
 # -----------------------------
 # Routes
 # -----------------------------
-
-# UI Page
 @app.route('/')
 def home():
     return render_template_string(HTML_PAGE)
 
-# CREATE
 @app.route('/student', methods=['POST'])
 def add_student():
     data = request.get_json()
@@ -154,7 +198,6 @@ def add_student():
     conn.close()
     return jsonify({"message": "Added"})
 
-# READ ALL
 @app.route('/student', methods=['GET'])
 def get_students():
     conn = get_db_connection()
@@ -162,7 +205,6 @@ def get_students():
     conn.close()
     return jsonify([dict(s) for s in students])
 
-# UPDATE
 @app.route('/student/<int:id>', methods=['PUT'])
 def update_student(id):
     data = request.get_json()
@@ -175,7 +217,6 @@ def update_student(id):
     conn.close()
     return jsonify({"message": "Updated"})
 
-# DELETE
 @app.route('/student/<int:id>', methods=['DELETE'])
 def delete_student(id):
     conn = get_db_connection()
